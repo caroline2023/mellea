@@ -64,7 +64,7 @@ title_before_code = [
     "Pa. C.S.",
 ]
 
-florida = r"\u00a7 [1-9][0-9]*\.[1-9][0-9]* (Fla\. Stat\.|F\.S\.)",
+florida = r"\u00a7 [1-9][0-9]*\.[1-9][0-9]* (Fla\. Stat\.|F\.S\.)"
 
 def parse_statutes(file: str) -> list[str]:
     citations = []
@@ -72,25 +72,27 @@ def parse_statutes(file: str) -> list[str]:
     for statute in state_statute_citations:
         matches = [m.start() for m in re.finditer(statute, file)]
         for match in matches:
-            end = file.find(")", match)
-            if end == -1:
+            end = re.search(r"\s\(.*\)", file[match+1:])
+            if end is None:
                 raise Exception(f"Could not find closing parenthesis for statute match: {statute}")
-            citation = file[match:end+1]
+            citation = file[match:match+end.end()+1]
             citations.append(citation)
     for statute in title_before_code:
         pattern = statute
         matches = [m.start() for m in re.finditer(pattern, file)]
         for match in matches:
-            end = file.find(")", match)
-            if end == -1:
+            end = re.search(r"\s\(.*\)", file[match+1:])
+            # what if year not included at all, and it captures future paren
+            print(match, end)
+            if end is None:
                 if statute == "U.S.C.":
                     end_match = re.search(r"\u00a7 [1-9][0-9]*(-[1-9][0-9]*)*\s", file[match+1:])
                     if end_match is not None:
                         end = match + 1 + end_match.end() - 1
-                if end == -1:
+                if end is None:
                     raise Exception(f"Could not find proper closing for statute match: {statute}")
             start = file.rfind(" ", 0, match-1) # find the last space before the match
-            citation = file[start+1:end+1]
+            citation = file[start+1:match+end.end()+1]
             citations.append(citation)
     # special case for florida
     matches = [m.start() for m in re.finditer(florida, file)]
@@ -146,5 +148,5 @@ See U.C.C. § 2-207 (Am. Law Inst. & Unif. Law Comm’n 2022). Section 2-207 mod
 'mirror image rule' and allows for contract formation even when acceptance includes additional or different terms."""
 
 
-citations = parse_statutes(text)
+citations = parse_statutes(legal_text)
 print(citations)
