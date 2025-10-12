@@ -4,6 +4,7 @@ import re
 
 from mellea.stdlib.base import Context
 from mellea.stdlib.requirement import Requirement
+from mellea import generative
 
 state_statute_citations = [
     "Ala. Code",
@@ -105,6 +106,26 @@ def parse_statutes(file: str) -> list[str]:
         citations.append(citation)
     return citations
 
+
+# doesn't work but will leave this here for now
+def verify_statutes(citations: list[str]) -> list[bool]:
+    statute_exists = []
+    m = mellea.start_session()
+    for citation in citations:
+        response = m.instruct(
+            f"Can you tell me more about the following statute: {citation}"
+        )
+        print(citation, response.value)
+        statute_exists.append(classify_response(m, response=response.value))
+    return statute_exists
+        
+@generative
+def classify_response(response: str) -> bool:
+    """classify if the response claims the statute exists or not"""
+    ...
+
+
+
 text =  """
 Under T.C.A. § 39-13-101 (2021), assault includes intentional bodily injury to another.
 Compare O.C.G.A. § 16-5-20 (2018) with Fla. Stat. § 784.011 (2020) for variations in assault definitions.
@@ -112,6 +133,7 @@ See also A.R.S. § 13-1203 (2019), which includes offensive physical contact as 
 In Cal. Penal Code § 240 (2022), assault is defined as an unlawful attempt to commit a violent injury.
 Under 720 ILCS 5/12-1 (2017), Illinois law focuses on apprehension rather than physical contact.
 Refer to 18 U.S.C. § 111 (2015) for federal assault on a federal officer.
+Ariz. Rev. Stat. Ann. § 112-1001 (2025) is hopefully a fictional statute and does not exist.
 """
 
 legal_text = """Under the provisions of the Civil Rights Act, individuals are protected against 
@@ -148,5 +170,6 @@ See U.C.C. § 2-207 (Am. Law Inst. & Unif. Law Comm’n 2022). Section 2-207 mod
 'mirror image rule' and allows for contract formation even when acceptance includes additional or different terms."""
 
 
-citations = parse_statutes(legal_text)
-print(citations)
+citations = parse_statutes(text)
+exists = verify_statutes(citations)
+print(exists)
