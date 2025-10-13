@@ -84,7 +84,6 @@ def parse_statutes(file: str) -> list[str]:
         for match in matches:
             end = re.search(r"\s\(.*\)", file[match+1:])
             # what if year not included at all, and it captures future paren
-            print(match, end)
             if end is None:
                 if statute == "U.S.C.":
                     end_match = re.search(r"\u00a7 [1-9][0-9]*(-[1-9][0-9]*)*\s", file[match+1:])
@@ -112,18 +111,30 @@ def verify_statutes(citations: list[str]) -> list[bool]:
     statute_exists = []
     m = mellea.start_session()
     for citation in citations:
-        response = m.instruct(
-            f"Can you tell me more about the following statute: {citation}"
+        response1 = m.instruct(
+            f"What is this statute about: {citation}",
+            model_options={"temperature": 0}
         )
-        print(citation, response.value)
-        statute_exists.append(classify_response(m, response=response.value))
+        response2 = m.instruct(
+            f"Can you tell me about this statute: {citation}",
+            model_options={"temperature": 0}
+        )
+        print(citation)
+        print("Response 1:", response1.value)
+        print("Response 2:", response2.value)
+        statute_exists.append(classify_response(m, response1=response1.value, response2=response2.value))
     return statute_exists
         
 @generative
-def classify_response(response: str) -> bool:
-    """classify if the response claims the statute exists or not"""
+def classify_response(response1: str, response2: str) -> bool:
+    """classify if the two responses are consistent with each other for the same statute"""
     ...
 
+
+short = """
+Refer to 18 U.S.C. § 111 (2015) for federal assault on a federal officer.
+Ariz. Rev. Stat. Ann. § 112-1001 (2025) is hopefully a fictional statute and does not exist.
+"""
 
 
 text =  """
@@ -170,6 +181,6 @@ See U.C.C. § 2-207 (Am. Law Inst. & Unif. Law Comm’n 2022). Section 2-207 mod
 'mirror image rule' and allows for contract formation even when acceptance includes additional or different terms."""
 
 
-citations = parse_statutes(text)
+citations = parse_statutes(short)
 exists = verify_statutes(citations)
 print(exists)
